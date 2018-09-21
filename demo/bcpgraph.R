@@ -1,5 +1,5 @@
 if(require("igraph")) {
-  set.seed(1)
+  set.seed(5)
   
   # make the adjacency structure (for a short-boundary model)
   p <- 0.5
@@ -38,7 +38,7 @@ if(require("igraph")) {
   }
   
   # run bcp
-  a <- bcp(y, p0=0.2, adj=adj2, burnin=1000, mcmc=500)
+  a <- bcp(y, p0=0.3, adj=adj2, burnin=1000, mcmc=500)
   
   ## plot of posterior means
   V(g)$name <- round(a$posterior.mean[,1],1)

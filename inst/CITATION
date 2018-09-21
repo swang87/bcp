@@ -38,12 +38,11 @@ citEntry(entry = "Article",
   volume       = "24",
   number       = "19",
   pages        = "2143--2148",
-  url          = "http://bioinformatics.oxfordjournals.org/cgi/content/abstract/btn404",
-
+  url          = "https://www.ncbi.nlm.nih.gov/pubmed/18667443",
   textVersion  =
   paste("Chandra Erdman, John W. Emerson (2008),",
         "A Fast Bayesian Change Point Analysis for the Segmentation of Microarray Data,",
         "Bioinformatics, 24(19), 2143--2148,",
-        "URL http://bioinformatics.oxfordjournals.org/cgi/content/abstract/btn404.")
+        "URL https://www.ncbi.nlm.nih.gov/pubmed/18667443.")
 )
 

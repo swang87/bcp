@@ -67,6 +67,8 @@
 #' @param boundaryType (optional) only applicable for graph change point analysis. Values can be ``node'' (default) if we count nodes in the boundary length calculation, or ``edge'' if we count edges in the boundary length calculation. See Wang and Emerson (2015) for details.
 #' @param p1 (optional) only applicable for graph change point analysis. The proportion of Active Pixel Passes run that are the actual Active Pixel Passes specified in Barry and Hartigan (1994). \code{p1 = 0} corresponds to exclusively using the pseudo-Active Pixel Passes given in Wang and Emerson (2015). 
 #' @param freqAPP (optional) only applicable for graph change point analysis. A positive integer for the number of Active Pixel Passes run in each step of the MCMC algorithm. 
+#' @param nreg (optional) only applicable for regression; related to parameter 
+#' \code{d} describing the minimum number of observations needed in a block to allow for fitting a regression model. Defaults to 2*number of predictors. 
 #'
 #' @return Returns a list containing the following components:
 #' \describe{
@@ -91,7 +93,7 @@
 #' 
 #' \item Daniel Barry and J. A. Hartigan (1994), A Product Partition Model for Image Restoration, \emph{New Directions in Statistical Data Analysis and Robustness}, (Monte Verita : Proceedings of the Cento Stefano Franscini Ascona), Birkhauser, 9-23.
 #' 
-#' \item Chandra Erdman and John W. Emerson (2008), A Fast Bayesian Change Point Analysis for the Segmentation of Microarray Data, \emph{Bioinformatics}, 24(19), 2143-2148. \url{http://bioinformatics.oxfordjournals.org/cgi/content/abstract/btn404}.
+#' \item Chandra Erdman and John W. Emerson (2008), A Fast Bayesian Change Point Analysis for the Segmentation of Microarray Data, \emph{Bioinformatics}, 24(19), 2143-2148. \url{https://www.ncbi.nlm.nih.gov/pubmed/18667443}.
 #' 
 #' \item Chandra Erdman and John W. Emerson (2007), bcp: An R Package for Performing a Bayesian Analysis of Change Point Problems. \emph{Journal of Statistical Software}, 23(3), 1-13. \url{http://www.jstatsoft.org/v23/i03/}.
 #' 
@@ -105,6 +107,7 @@
 #' }
 #' @author Xiaofei Wang, Chandra Erdman, and John W. Emerson
 #' @seealso \code{\link{plot.bcp}}, \code{\link{summary.bcp}}, and \code{\link{print.bcp}} for summaries of the results.
+#' @import graphics
 #' @examples
 #' 
 #' ##### univariate sequential data #####
@@ -164,6 +167,7 @@
 #' plot(bcp.3b, main="Linear Regression Change Point Example")
 #' 
 #' ##### univariate data on a grid #####  
+#' \dontrun{
 #' set.seed(5)
 #' adj <- makeAdjGrid(20)
 #' z <- rep(c(0, 2), each=200)
@@ -202,7 +206,7 @@
 #'          ggtitle("Posterior Boundary Probabilities")
 #'   print(g)
 #' }
-#' 
+#' }
 #' 
 #' \dontrun{
 #' ##### multivariate data on a grid #####
@@ -255,14 +259,15 @@
 #' @export
 "bcp" <- function(y, x=NULL, id = NULL, adj=NULL, w0=NULL, p0=0.2, d = 10, 
                   burnin=50, mcmc=500, return.mcmc=FALSE, 
-                  boundaryType = "node", p1 = 1, freqAPP = 20) {
+                  boundaryType = "node", p1 = 1, freqAPP = 20, 
+                  nreg = -1) {
   
   ######################################################
   ########################### BEGIN THE WORKER FUNCTION:
   ######################################################
   
   "worker.bcp" <- function(mcmc, y, x, id, w0, p0, d, burnin, return.mcmc, membinit,
-                           boundaryType, adj, p1, freqAPP) {
+                           boundaryType, adj, p1, freqAPP, nreg) {
     
     require(bcp)
     
@@ -285,10 +290,13 @@
       if (is.null(w0)) w0 <- 0.2
       if (w0 > 1 | w0 < 0) stop("w0 must be between 0 and 1.")
       if (is.vector(y)) y <- cbind(y)
+      
+      colnames(y) <- NULL
+      rownames(y) <- NULL
       # Do the work in C:
       if (is.null(adj)) {
         out <- rcpp_bcpM(
-          y, as.integer(id),
+          as.matrix(y), as.integer(id),
           as.integer(return.mcmc),
           as.integer(burnin), 
           as.integer(mcmc),     
@@ -333,9 +341,10 @@
           } else stop("Incorrect length for w0.")
         }
       }  
-        
+      if (nreg == -1) {
+        nreg <- 2*(ncol(x)-1)
+      }  
         indmat <- t(sapply(unique(id), function(y) id == y)*1)   
-        
         # Do the work in C:
         if (is.null(adj)) {
           out <- rcpp_bcpR( 
@@ -348,7 +357,8 @@
             as.integer(mcmc),     
             as.double(p0),
             as.double(w0),
-            d
+            as.double(d),
+            as.integer(nreg)
           )
           out$data = cbind(id+1, y,x[,-1])
           attr(out, "structure") <- "series"
@@ -365,9 +375,10 @@
                            as.double(w0),
                            membinit,
                            as.integer(boundaryType),
-                           d,
+                           as.double(d),
                            as.double(p1),
-                           as.integer(freqAPP))
+                           as.integer(freqAPP),
+                           as.integer(nreg))
           out$data = cbind(id+1, y,x)
           attr(out, "structure") <- "graph"
         }
@@ -454,7 +465,7 @@
     ans <- worker.bcp(mcmc, y=y, x=x, id=id, w0=w0, p0=p0, d=d, 
                       burnin=burnin, return.mcmc=return.mcmc,
                       membinit=membinit, boundaryType=boundaryType,
-                      adj=adj, p1=p1, freqAPP=freqAPP)
+                      adj=adj, p1=p1, freqAPP=freqAPP, nreg=nreg)
     #  ==================================
     #  ===  Reformat the mcmc.means   ===
     #  ==================================
