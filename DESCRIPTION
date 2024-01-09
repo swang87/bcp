@@ -5,6 +5,7 @@ Version: 4.0.3
 Date: 2018-08-13
 Author: Xiaofei Wang, Chandra Erdman, and John W. Emerson
 Maintainer: Xiaofei Wang <xiaofei.wang@yale.edu>
+URL: https://github.com/swang87/bcp
 Depends:
     graphics,
     methods,
